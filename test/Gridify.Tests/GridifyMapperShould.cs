@@ -18,7 +18,7 @@ public class GridifyMapperShould
       var props = typeof(TestClass).GetProperties()
          .Where(q => !q.PropertyType.IsClass || q.PropertyType == typeof(string)); 
 
-      Assert.Equal(props.Count(), _sut.GetCurrentMaps().Count());
+      Assert.Equal(props.Count()*2, _sut.GetCurrentMaps().Count());
       Assert.True(_sut.HasMap("Id"));
    }
 

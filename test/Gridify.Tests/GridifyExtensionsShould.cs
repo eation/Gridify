@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+
 using Xunit;
 
 namespace Gridify.Tests;
@@ -783,6 +785,79 @@ public class GridifyExtensionsShould
       Assert.True(actual.Any());
    }
 
+   #endregion
+
+   #region "ApplySelecting"
+   [Fact]
+   public void ApplySelecting()
+   {
+      GridifyQuery? gq = new();
+      gq.Select = "id,name";
+      var actual = _fakeRepository.AsQueryable()
+         .ApplySelect(gq).Cast<dynamic>().ToList();
+      var expected = _fakeRepository.Select<TestClass, dynamic>(m => new { m.Id, m.Name }).ToList();
+
+      var actualjson = System.Text.Json.JsonSerializer.Serialize(actual);
+      var expectedjson = System.Text.Json.JsonSerializer.Serialize(expected);
+      Assert.Equal(expectedjson, actualjson);
+   }
+
+   [Fact]
+   public void ApplySelecting_EmptySelect_ShouldSkip()
+   {
+      GridifyQuery? gq = null;
+      var actual = _fakeRepository.AsQueryable()
+         .ApplySelect(gq).Cast<TestClass>()
+         .ToList();
+      var expected = _fakeRepository.ToList();
+      var actualjson = System.Text.Json.JsonSerializer.Serialize(actual);
+      var expectedjson = System.Text.Json.JsonSerializer.Serialize(expected);
+      Assert.Equal(expectedjson, actualjson);
+   }
+
+   #endregion
+
+   #region "GetExpression"
+
+   [Fact]
+   public void Expression_Filtering()
+   {
+      GridifyQuery? gq = new();
+      gq.Filter = "name=John|name=Sara";
+      var gm = new GridifyMapper<TestClass>().GenerateMappings();
+      var exp = gq.GetFilteringExpression(gm);
+
+      var actual = exp.ToString();
+      var expected = "Param_0 => ((Param_0.Name == \"John\") OrElse (Param_0.Name == \"Sara\"))";
+      Assert.Equal(expected, actual);
+   }
+
+   [Fact]
+   public void Expression_Ordering()
+   {
+      GridifyQuery? gq = new();
+      gq.OrderBy = "MyDateTime desc, id, name asc";
+      var gm = new GridifyMapper<TestClass>().GenerateMappings();
+      var exp = gq.GetOrderingExpressions(gm).ToList();
+
+      Assert.Equal(3, exp.Count);
+      Assert.Equal("MyDateTime", ((exp[0].Item1.Body as UnaryExpression)!.Operand as MemberExpression)!.Member.Name);
+      Assert.False(exp[0].Item2);
+      Assert.True(exp[0].Item3);
+   }
+
+   [Fact]
+   public void Expression_Selecting()
+   {
+      GridifyQuery? gq = new();
+      gq.Select = "id,name";
+      var gm = new GridifyMapper<TestClass>().GenerateMappings();
+      var exp = gq.GetSelectingExpression(gm);
+
+      var actual = exp.ToString();
+      var expected = "Param_0 => new {Id = Param_0.Id, Name = Param_0.Name}";
+      Assert.Equal(expected, actual);
+   }
    #endregion
 
    #region "ApplyPaging"

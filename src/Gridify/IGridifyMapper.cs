@@ -18,8 +18,8 @@ public interface IGridifyMapper<T>
    IGridifyMapper<T> RemoveMap(IGMap<T> gMap);
    LambdaExpression GetLambdaExpression(string from, StringComparison? comparison = null);
    Expression<Func<T, object>> GetExpression(string key, StringComparison? comparison = null);
-   IGMap<T>? GetGMap(string from);
-   bool HasMap(string key);
+   IGMap<T>? GetGMap(string from, StringComparison? comparison = null);
+   bool HasMap(string key, StringComparison? comparison = null);
    public GridifyMapperConfiguration Configuration { get; }
    IEnumerable<IGMap<T>> GetCurrentMaps();
 }
