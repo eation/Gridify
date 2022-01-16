@@ -10,23 +10,23 @@ public class GridifyMapper<T> : IGridifyMapper<T>
 {
    public GridifyMapperConfiguration Configuration { get; }
    private readonly List<IGMap<T>> _mappings;
-    private static ParameterExpression? ParameterExp;
+   private static ParameterExpression? TypeParameter;
 
-   public GridifyMapper(bool autoGenerateMappings = false)
+   public GridifyMapper(ParameterExpression? parameter = null, bool autoGenerateMappings = false)
    {
       Configuration = new GridifyMapperConfiguration();
       _mappings = new List<IGMap<T>>();
-      ParameterExp = Expression.Parameter(typeof(T));
+      TypeParameter = parameter ?? Expression.Parameter(typeof(T));
 
       if (autoGenerateMappings)
          GenerateMappings();
    }
 
-   public GridifyMapper(GridifyMapperConfiguration configuration, bool autoGenerateMappings = false)
+   public GridifyMapper(GridifyMapperConfiguration configuration, ParameterExpression? parameter = null, bool autoGenerateMappings = false)
    {
       Configuration = configuration;
       _mappings = new List<IGMap<T>>();
-        ParameterExp = Expression.Parameter(typeof(T));
+      TypeParameter = parameter ?? Expression.Parameter(typeof(T));
 
       if (autoGenerateMappings)
          GenerateMappings();
@@ -37,7 +37,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       Configuration = new GridifyMapperConfiguration();
       configuration.Invoke(Configuration);
       _mappings = new List<IGMap<T>>();
-        ParameterExp = Expression.Parameter(typeof(T));
+        TypeParameter = Expression.Parameter(typeof(T));
 
       if (autoGenerateMappings)
          GenerateMappings();
@@ -268,7 +268,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       // x =>
       //var parameter = Expression.Parameter(typeof(T));
       // x.Name,x.yyy.zz.xx
-      Expression mapProperty = ParameterExp!;
+      Expression mapProperty = TypeParameter!;
       foreach (var propertyName in from.Split('.'))
       {
          mapProperty = Expression.Property(mapProperty, propertyName);
@@ -276,7 +276,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       // (object)x.Name
       var convertedExpression = Expression.Convert(mapProperty, typeof(object));
       // x => (object)x.Name
-      return Expression.Lambda<Func<T, object>>(convertedExpression, ParameterExp!);
+      return Expression.Lambda<Func<T, object>>(convertedExpression, TypeParameter!);
    }
 
    internal static Expression<Func<T, object>> CreateSubExpression(Expression root,string from)
@@ -309,7 +309,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
             // (object)x.Name
             var convertedExpression = Expression.Convert(mapProperty, typeof(object));
             // x => (object)x.Name
-            return Expression.Lambda<Func<T, object>>(convertedExpression, ParameterExp!);
+            return Expression.Lambda<Func<T, object>>(convertedExpression, TypeParameter!);
         }
    }
 
@@ -318,7 +318,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       // x =>
       //var parameter = Expression.Parameter(typeof(T));
       // x.Name,x.yyy.zz.xx
-      Expression mapProperty = ParameterExp!;
+      Expression mapProperty = TypeParameter!;
       foreach (var propertyName in from.Split('.'))
       {
          mapProperty = Expression.Property(mapProperty, propertyName);
@@ -326,7 +326,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       // (object)x.Name
       var convertedExpression = Expression.Convert(mapProperty, typeof(object));
       // x => (object)x.Name
-      return Expression.Lambda(convertedExpression, ParameterExp!);
+      return Expression.Lambda(convertedExpression, TypeParameter!);
    }
 
     internal static LambdaExpression CreateSubLambdaExpression(Expression root,string from)
@@ -360,7 +360,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
             //var convertedExpression = Expression.Convert(mapProperty, typeof(object));
             // x => (object)x.Name
             //return Expression.Lambda(convertedExpression, parameter);
-            return Expression.Lambda(mapProperty, ParameterExp!);
+            return Expression.Lambda(mapProperty, TypeParameter!);
         }
     }
 }

@@ -40,7 +40,7 @@ public class LibraryComparisionFilteringBenchmark
       _processor = new SieveProcessor(new OptionsWrapper<SieveOptions>(new SieveOptions()));
 
       // gridify
-      _gm = new GridifyMapper<TestClass>(true);
+      _gm = new GridifyMapper<TestClass>(autoGenerateMappings: true);
 
       // CSharpScripting
       _options = ScriptOptions.Default.AddReferences(typeof(TestClass).Assembly);

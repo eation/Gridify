@@ -84,13 +84,13 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    {
       if (_mapper != null && _mapper.GetCurrentMaps().Any())
       {
-         var tempMapper = new GridifyMapper<T>(mapperConfiguration, true);
+         var tempMapper = new GridifyMapper<T>(mapperConfiguration, null, true);
          _mapper.GetCurrentMaps().ToList().ForEach(map => tempMapper.AddMap(map));
          _mapper = tempMapper;
          return this;
       }
 
-      _mapper = new GridifyMapper<T>(mapperConfiguration, true);
+      _mapper = new GridifyMapper<T>(mapperConfiguration, null, true);
       return this;
    }
 
@@ -105,7 +105,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    /// <inheritdoc />
    public IQueryBuilder<T> AddMap(IGMap<T> map, bool overwrite = true)
    {
-      _mapper ??= new GridifyMapper<T>(true);
+      _mapper ??= new GridifyMapper<T>(autoGenerateMappings: true);
       _mapper.AddMap(map, overwrite);
       return this;
    }
@@ -113,7 +113,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    /// <inheritdoc />
    public IQueryBuilder<T> AddMap(string from, Expression<Func<T, object?>> to, Func<string, object>? convertor = null, bool overwrite = true)
    {
-      _mapper ??= new GridifyMapper<T>(true);
+      _mapper ??= new GridifyMapper<T>(autoGenerateMappings: true);
       _mapper.AddMap(from, to, convertor, overwrite);
       return this;
    }
@@ -121,7 +121,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    /// <inheritdoc />
    public IQueryBuilder<T> RemoveMap(IGMap<T> map)
    {
-      _mapper ??= new GridifyMapper<T>(true);
+      _mapper ??= new GridifyMapper<T>(autoGenerateMappings: true);
       _mapper.RemoveMap(map);
       return this;
    }
@@ -130,7 +130,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    public bool IsValid()
    {
       var isValid = true;
-      _mapper ??= new GridifyMapper<T>(true);
+      _mapper ??= new GridifyMapper<T>(autoGenerateMappings: true);
       try
       {
          if (_conditionList.Count > 0)
