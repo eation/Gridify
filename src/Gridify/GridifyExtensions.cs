@@ -10,7 +10,7 @@ using Gridify.Syntax;
 
 namespace Gridify;
 
-public static partial class GridifyExtensions
+public static class GridifyExtensions
 {
    #region "Private"
 
@@ -39,7 +39,7 @@ public static partial class GridifyExtensions
       if (string.IsNullOrWhiteSpace(filter))
          throw new GridifyQueryException("Filter is not defined");
 
-      var syntaxTree = SyntaxTree.Parse(filter!);
+      var syntaxTree = SyntaxTree.Parse(filter!, GridifyGlobalConfiguration.CustomOperators.Operators);
 
       if (syntaxTree.Diagnostics.Any())
          throw new GridifyFilteringException(syntaxTree.Diagnostics[syntaxTree.Diagnostics.Count - 1]!);
@@ -58,10 +58,10 @@ public static partial class GridifyExtensions
       if (string.IsNullOrWhiteSpace(gridifyFiltering.Filter))
          throw new GridifyQueryException("Filter is not defined");
 
-      var syntaxTree = SyntaxTree.Parse(gridifyFiltering.Filter!);
+      var syntaxTree = SyntaxTree.Parse(gridifyFiltering.Filter!, GridifyGlobalConfiguration.CustomOperators.Operators);
 
       if (syntaxTree.Diagnostics.Any())
-         throw new GridifyFilteringException(syntaxTree.Diagnostics[syntaxTree.Diagnostics.Count - 1]!);
+         throw new GridifyFilteringException(syntaxTree.Diagnostics.Last()!);
 
       try
       {
@@ -366,7 +366,7 @@ public static partial class GridifyExtensions
       var nodes = new Stack<SyntaxNode>(new[] { root });
       while (nodes.Any())
       {
-         SyntaxNode node = nodes.Pop();
+         var node = nodes.Pop();
          yield return node;
          foreach (var n in node.GetChildren()) nodes.Push(n);
       }
@@ -472,7 +472,7 @@ public static partial class GridifyExtensions
       if (string.IsNullOrWhiteSpace(filtering.Filter)) return true;
       try
       {
-         var parser = new Parser(filtering.Filter!);
+         var parser = new Parser(filtering.Filter!, GridifyGlobalConfiguration.CustomOperators.Operators);
          var syntaxTree = parser.Parse();
          if (syntaxTree.Diagnostics.Any())
             return false;
@@ -639,7 +639,7 @@ public static partial class GridifyExtensions
             Type propertyType = propertyTypes[i];
 
             // Promote from Type to Nullable Type if needed
-            if (expressions.ElementAt(i).NodeType != ExpressionType.MemberAccess)
+            if (expressions.ElementAt(i).NodeType != System.Linq.Expressions.ExpressionType.MemberAccess)
             {
                expressionsPromoted.Add(Expression.MakeMemberAccess(expressions.ElementAt(i), propertyType.GetTypeInfo())!);
             }
@@ -672,7 +672,7 @@ public static partial class GridifyExtensions
          }
 
          // Promote from Type to Nullable Type if needed
-         if (expressions.ElementAt(i).NodeType != ExpressionType.MemberAccess)
+         if (expressions.ElementAt(i).NodeType != System.Linq.Expressions.ExpressionType.MemberAccess)
          {
             bindings[i] = Expression.Bind(memberInfo, Expression.MakeMemberAccess(expressions.ElementAt(i), propertyOrFieldType.GetTypeInfo())!);
          }
@@ -744,10 +744,10 @@ public static partial class GridifyExtensions
       if (string.IsNullOrWhiteSpace(filter))
          return query;
 
-      var syntaxTree = SyntaxTree.Parse(filter!);
+      var syntaxTree = SyntaxTree.Parse(filter!, GridifyGlobalConfiguration.CustomOperators.Operators);
 
       if (syntaxTree.Diagnostics.Any())
-         throw new GridifyFilteringException(syntaxTree.Diagnostics[syntaxTree.Diagnostics.Count - 1]!);
+         throw new GridifyFilteringException(syntaxTree.Diagnostics.Last());
 
       mapper = mapper.FixMapper(syntaxTree);
 

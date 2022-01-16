@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using FastExpressionCompiler;
 using System.Linq.Expressions;
 using Gridify.Syntax;
 
@@ -179,7 +181,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    public Func<IEnumerable<T>, bool> BuildCompiledEvaluator()
    {
       var _conditions = _conditionList.Select(ConvertConditionToExpression).ToList();
-      var compiledCond = _conditions.Select(q => q.Compile()).ToList();
+      var compiledCond = _conditions.Select(q => q.CompileFast()).ToList();
       var length = _conditions.Count;
       return collection =>
       {
@@ -227,7 +229,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    /// <inheritdoc />
    public Func<IEnumerable<T>, IEnumerable<T>> BuildCompiled()
    {
-      var compiled = BuildFilteringExpression().Compile();
+      var compiled = BuildFilteringExpression().CompileFast();
       return collection =>
       {
          if (_conditionList.Count > 0)
@@ -247,7 +249,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    public IEnumerable<T> Build(IEnumerable<T> collection)
    {
       if (_conditionList.Count > 0)
-         collection = collection.Where(BuildFilteringExpression().Compile());
+         collection = collection.Where(BuildFilteringExpression().CompileFast());
 
       if (!string.IsNullOrEmpty(_orderBy))
          collection = collection.AsQueryable().ApplyOrdering(_orderBy);
@@ -325,7 +327,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
 
    private Expression<Func<T, bool>> ConvertConditionToExpression(string condition)
    {
-      var syntaxTree = SyntaxTree.Parse(condition);
+      var syntaxTree = SyntaxTree.Parse(condition, GridifyGlobalConfiguration.CustomOperators.Operators);
 
       if (syntaxTree.Diagnostics.Any())
          throw new GridifyFilteringException(syntaxTree.Diagnostics.Last()!);

@@ -2,7 +2,7 @@
 
 Using this class you can change the default behavior and configuration of the gridify library.
 
-## Properties
+## General configurations
 
 ### DefaultPageSize
 
@@ -36,6 +36,18 @@ If true, in filtering and ordering operations, gridify doesn't return any except
 - default: `false`
 - related to: [GridifyMapper - IgnoreNotMappedFields](./gridifyMapper.md#ignorenotmappedfields)
 
+## CustomOperators
+
+Using the `Register` method of this property you can add your own custom operators.
+
+``` csharp
+ GridifyGlobalConfiguration.CustomOperators.Register(new MyCustomOperator());
+```
+
+To learn more about custom operators, see [Custom operator](./filtering.md#custom-operators)
+
+## EntityFramework
+
 ### EntityFrameworkCompatibilityLayer
 
 Setting this property to `true` Enables the EntityFramework Compatibility layer to make the generated expressions compatible whit entity framework.
@@ -47,8 +59,6 @@ Setting this property to `true` Enables the EntityFramework Compatibility layer 
 Lean more about the [compatibility layer](./entity-framework.md#compatibility-layer)
 :::
 
-## Methods
-
 ### EnableEntityFrameworkCompatibilityLayer()
 
 Simply sets the [EntityFrameworkCompatibilityLayer](#entityframeworkcompatibilitylayer) property to `true`.
@@ -56,3 +66,4 @@ Simply sets the [EntityFrameworkCompatibilityLayer](#entityframeworkcompatibilit
 ### DisableEntityFrameworkCompatibilityLayer()
 
 Simply sets the [EntityFrameworkCompatibilityLayer](#entityframeworkcompatibilitylayer) property to `false`.
+
