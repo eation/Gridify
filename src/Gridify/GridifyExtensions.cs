@@ -924,4 +924,15 @@ public static class GridifyExtensions
 
       return isSortAsc ? query.ThenBy(expression) : query.ThenByDescending(expression);
    }
+
+   /// <summary>
+   /// Convert Func to Expression
+   /// </summary>
+   /// <typeparam name="T"></typeparam>
+   /// <param name="f">Func{T, bool}</param>
+   /// <returns></returns>
+   public static Expression<Func<T, bool>> FuncToExpression<T>(this Func<T, bool> f)
+   {
+      return x => f(x);
+   }
 }
