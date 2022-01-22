@@ -10,7 +10,7 @@ public class GMap<T> : IGMap<T>
    public LambdaExpression To { get; set; }
    public Func<string, object>? Convertor { get; set; }
 
-   public GMap(string from, Expression<Func<T, object?>> to, Func<string, object>? convertor = null)
+   public GMap(string from, LambdaExpression to, Func<string, object>? convertor = null)
    {
       From = from;
       To = to;
@@ -19,10 +19,10 @@ public class GMap<T> : IGMap<T>
 
    internal bool IsNestedCollection() => Regex.IsMatch(To.ToString(), @"\.Select\s*\(");
 
-   public GMap(string from, Expression<Func<T, int, object?>> to, Func<string, object>? convertor = null)
-   {
-      From = from;
-      To = to;
-      Convertor = convertor;
-   }
+   //public GMap(string from, Expression<Func<T, int, dynamic?>> to, Func<string, object>? convertor = null)
+   //{
+   //   From = from;
+   //   To = to;
+   //   Convertor = convertor;
+   //}
 }

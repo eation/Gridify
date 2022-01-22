@@ -44,13 +44,20 @@ public static class GridifyExtensions
       if (syntaxTree.Diagnostics.Any())
          throw new GridifyFilteringException(syntaxTree.Diagnostics[syntaxTree.Diagnostics.Count - 1]!);
 
-      if (mapper is null)
-         mapper = new GridifyMapper<T>(autoGenerateMappings: true);
+      try
+      {
+         if (mapper is null)
+            mapper = new GridifyMapper<T>(autoGenerateMappings: true);
 
-      mapper = mapper.FixMapper(syntaxTree);
-      var (queryExpression, _) = ExpressionToQueryConvertor.GenerateQuery(syntaxTree.Root, mapper);
-      if (queryExpression == null) throw new GridifyQueryException("Can not create expression with current data");
-      return queryExpression;
+         mapper = mapper.FixMapper(syntaxTree);
+         var (queryExpression, _) = ExpressionToQueryConvertor.GenerateQuery(syntaxTree.Root, mapper);
+         if (queryExpression == null) throw new GridifyQueryException("Can not create expression with current data");
+         return queryExpression;
+      }
+      catch (Exception)
+      {
+         throw;
+      }
    }
 
    public static Expression<Func<T, bool>> GetFilteringExpression<T>(this IGridifyFiltering gridifyFiltering, IGridifyMapper<T>? mapper = null)
@@ -226,7 +233,7 @@ public static class GridifyExtensions
       {
          foreach (var member in members)
          {
-            Expression<Func<T, object>>? mexp = null;
+            Expression<Func<T, dynamic>>? mexp = null;
             try
             {
                mexp = GridifyMapper<T>.CreateExpression(member);
@@ -283,7 +290,7 @@ public static class GridifyExtensions
       {
          foreach (var member in members)
          {
-            Expression<Func<T, object>>? mexp = null;
+            Expression<Func<T, dynamic>>? mexp = null;
             try
             {
                mexp = GridifyMapper<T>.CreateExpression(member);
@@ -854,7 +861,7 @@ public static class GridifyExtensions
    /// <returns>Query with sorting applied as IOrderedQueryable of type T</returns>
    private static IOrderedQueryable<T> OrderByMember<T>(
       this IQueryable<T> query,
-      Expression<Func<T, object>> expression,
+      Expression<Func<T, dynamic>> expression,
       bool isSortAsc)
    {
       if (expression.Body is not UnaryExpression body) return isSortAsc ? query.OrderBy(expression) : query.OrderByDescending(expression);
@@ -887,7 +894,7 @@ public static class GridifyExtensions
    /// <returns>Query with sorting applied as IOrderedQueryable of type T</returns>
    public static IOrderedQueryable<T> ThenByMember<T>(
       this IQueryable<T> query,
-      Expression<Func<T, object>> expression,
+      Expression<Func<T, dynamic>> expression,
       bool isSortAsc)
    {
       return ((IOrderedQueryable<T>)query).ThenByMember(expression, isSortAsc);
@@ -905,7 +912,7 @@ public static class GridifyExtensions
    /// <returns>Query with sorting applied as IOrderedQueryable of type T</returns>
    private static IOrderedQueryable<T> ThenByMember<T>(
       this IOrderedQueryable<T> query,
-      Expression<Func<T, object>> expression,
+      Expression<Func<T, dynamic>> expression,
       bool isSortAsc)
    {
       if (expression.Body is not UnaryExpression body) return isSortAsc ? query.ThenBy(expression) : query.ThenByDescending(expression);

@@ -113,7 +113,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    }
 
    /// <inheritdoc />
-   public IQueryBuilder<T> AddMap(string from, Expression<Func<T, object?>> to, Func<string, object>? convertor = null, bool overwrite = true)
+   public IQueryBuilder<T> AddMap(string from, Expression<Func<T, dynamic?>> to, Func<string, object>? convertor = null, bool overwrite = true)
    {
       _mapper ??= new GridifyMapper<T>(autoGenerateMappings: true);
       _mapper.AddMap(from, to, convertor, overwrite);
@@ -288,7 +288,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
 
    public Func<IEnumerable<T>, Paging<T>> BuildWithPagingCompiled()
    {
-      var compiled = BuildFilteringExpression().Compile();
+      var compiled = BuildFilteringExpression().CompileFast();
       return collection =>
       {
          if (_conditionList.Count > 0)
