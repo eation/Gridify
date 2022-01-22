@@ -375,7 +375,7 @@ internal static class ExpressionToQueryConvertor
 
    private static MethodInfo GetContainsMethod() => typeof(string).GetMethod("Contains", new[] { typeof(string) })!;
    private static MethodInfo GetIsNullOrEmptyMethod() => typeof(string).GetMethod("IsNullOrEmpty", new[] { typeof(string) })!;
-   private static MethodInfo GetToLowerMethod() => typeof(string).GetMethod("ToLower", new Type[] { })!;
+   private static MethodInfo GetToLowerMethod() => typeof(string).GetMethod("ToLower", Array.Empty<Type>())!;
 
    private static MethodInfo GetCompareMethodWithStringComparison() =>
       typeof(string).GetMethod("Compare", new[] { typeof(string), typeof(string), typeof(StringComparison) })!;
@@ -405,7 +405,7 @@ internal static class ExpressionToQueryConvertor
                   catch (GridifyMapperException)
                   {
                      if (mapper.Configuration.IgnoreNotMappedFields)
-                       
+
                         return (_ => true, false);
 
                      throw;
@@ -435,8 +435,8 @@ internal static class ExpressionToQueryConvertor
 
                var result = bExp.OperatorToken.Kind switch
                {
-                  SyntaxKind.And => leftQuery.exp.And(rightQuery.exp),
-                  SyntaxKind.Or => leftQuery.exp.Or(rightQuery.exp),
+                  SyntaxKind.And => leftQuery.exp.And(rightQuery.exp, mapper.TypeParameter),
+                  SyntaxKind.Or => leftQuery.exp.Or(rightQuery.exp, mapper.TypeParameter),
                   _ => throw new GridifyFilteringException($"Invalid expression Operator '{bExp.OperatorToken.Kind}'")
                };
                return (result, false);

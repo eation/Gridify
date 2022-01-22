@@ -22,5 +22,11 @@ public record GridifyMapperConfiguration
    /// </summary>
    public bool IgnoreNotMappedFields { get; set; } = GridifyGlobalConfiguration.IgnoreNotMappedFields;
 
+   /// <summary>
+   /// This option enables the PropertyName used Mapper 'From' in Selecting operations
+   /// Default is true
+   /// </summary>
+   public bool UseMapperForPropertyName{ get; set; }  = GridifyGlobalConfiguration.UseMapperForPropertyName;
+
 }
 

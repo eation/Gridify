@@ -47,7 +47,10 @@ public static class GridifyExtensions
       try
       {
          if (mapper is null)
-            mapper = new GridifyMapper<T>(autoGenerateMappings: true);
+         {
+            var parameterExp = Expression.Parameter(typeof(T), "m");
+            mapper = new GridifyMapper<T>(parameterExp, autoGenerateMappings: true);
+         }
 
          mapper = mapper.FixMapper(syntaxTree);
          var (queryExpression, _) = ExpressionToQueryConvertor.GenerateQuery(syntaxTree.Root, mapper);
@@ -73,7 +76,10 @@ public static class GridifyExtensions
       try
       {
          if (mapper is null)
-            mapper = new GridifyMapper<T>(autoGenerateMappings: true);
+         {
+            var parameterExp = Expression.Parameter(typeof(T), "m");
+            mapper = new GridifyMapper<T>(parameterExp, autoGenerateMappings: true);
+         }
 
          mapper = mapper.FixMapper(syntaxTree);
          var (queryExpression, _) = ExpressionToQueryConvertor.GenerateQuery(syntaxTree.Root, mapper);
@@ -97,12 +103,13 @@ public static class GridifyExtensions
 
       if (mapper is null)
       {
+         var parameterExp = Expression.Parameter(typeof(T), "m");
          foreach (var (member, isAscending) in orders)
          {
             LambdaExpression? exp = null;
             try
             {
-               exp = GridifyMapper<T>.CreateLambdaExpression(member);
+               exp = GridifyMapperHelper.CreateLambdaExpression<T>(parameterExp, member);
             }
             catch (Exception)
             {
@@ -159,12 +166,13 @@ public static class GridifyExtensions
 
       if (mapper is null)
       {
+         var parameterExp = Expression.Parameter(typeof(T), "m");
          foreach (var (member, isAscending) in orders)
          {
             LambdaExpression? exp = null;
             try
             {
-               exp = GridifyMapper<T>.CreateLambdaExpression(member);
+               exp = GridifyMapperHelper.CreateLambdaExpression<T>(parameterExp, member);
             }
             catch (Exception)
             {
@@ -215,10 +223,13 @@ public static class GridifyExtensions
       if (string.IsNullOrWhiteSpace(select))
          throw new GridifyQueryException("Select is not defined");
 
-      var parameterExp = Expression.Parameter(typeof(T));
+
 
       if (mapper is null)
+      {
+         var parameterExp = Expression.Parameter(typeof(T), "m");
          mapper = new GridifyMapper<T>(parameterExp, true);
+      }
 
       var members = ParseSelectings(select!).ToList();
 
@@ -227,45 +238,61 @@ public static class GridifyExtensions
 
       var Tmembers = typeof(T).GetProperties();
 
-
-
-      if (mapper is null)
+      foreach (var member in members.Where(m => mapper.HasMap(m)))
       {
-         foreach (var member in members)
+         PropertyInfo? tm = null;
+         var meTo = mapper.GetGMap(member)!.To;
+         switch (meTo.Body)
          {
-            Expression<Func<T, dynamic>>? mexp = null;
-            try
+            case MemberExpression me:
             {
-               mexp = GridifyMapper<T>.CreateExpression(member);
-            }
-            catch (Exception)
-            {
-               // skip if there is no mappings available
+               tm = mapper.Configuration.CaseSensitive ? Tmembers.FirstOrDefault(m => m.Name.Equals(me!.Member.Name)) : Tmembers.FirstOrDefault(m => m.Name.Equals(me!.Member.Name, StringComparison.InvariantCultureIgnoreCase));
+
+               if (mapper.Configuration.UseMapperForPropertyName)
+               {
+                  ldps.Add(new DynamicProperty(member, me!.Type));
+               }
+               else
+               {
+                  ldps.Add(new DynamicProperty(tm!.Name, me!.Type));
+               }
+
+               var mexp = Expression.MakeMemberAccess(mapper.TypeParameter, tm!);
+               exp.Add(mexp);
+               break;
             }
 
-            if (mexp != null)
+            case UnaryExpression uec when uec.NodeType == ExpressionType.Convert:
             {
-               ldps.Add(new DynamicProperty(member, mexp.Type));
-               //exp.Add(expm);
+               var meo = uec.Operand as MemberExpression;
+               tm = mapper.Configuration.CaseSensitive ? Tmembers.FirstOrDefault(m => m.Name.Equals(meo!.Member.Name)) : Tmembers.FirstOrDefault(m => m.Name.Equals(meo!.Member.Name, StringComparison.InvariantCultureIgnoreCase));
+
+               if (mapper.Configuration.UseMapperForPropertyName)
+               {
+                  ldps.Add(new DynamicProperty(member, meo!.Type));
+               }
+               else
+               {
+                  ldps.Add(new DynamicProperty(tm!.Name, meo!.Type));
+               }
+               exp.Add(meo);
+               break;
             }
 
-         }
-      }
-      else
-      {
-         foreach (var member in members.Where(m => mapper.HasMap(m)))
-         {
-            var tm = mapper.Configuration.CaseSensitive ? Tmembers.FirstOrDefault(m => m.Name.Equals(member)) : Tmembers.FirstOrDefault(m => m.Name.Equals(member, StringComparison.InvariantCultureIgnoreCase));
+            case not UnaryExpression when (meTo.Body.NodeType == ExpressionType.Add || meTo.Body.NodeType == ExpressionType.Decrement || meTo.Body.NodeType == ExpressionType.Multiply || meTo.Body.NodeType == ExpressionType.Divide || meTo.Body.NodeType == ExpressionType.Power || meTo.Body.NodeType == ExpressionType.Convert || meTo.Body.NodeType == ExpressionType.Call || meTo.Body.NodeType == ExpressionType.Constant):
+            {
+               var meo = meTo.Body;
 
-            var mexp = Expression.MakeMemberAccess(parameterExp, tm!);
-            ldps.Add(new DynamicProperty(mexp!.Member.Name, mexp!.Type));
-            exp.Add(mexp);
+               ldps.Add(new DynamicProperty(member, meo!.Type));
+               exp.Add(meo);
+               break;
+            }
          }
       }
 
       var newexp = CreateNewExpression(ldps, exp, null);
 
-      var lambda = Expression.Lambda(newexp, parameterExp);
+      var lambda = Expression.Lambda(newexp, mapper.TypeParameter!);
       return lambda;
    }
 
@@ -274,10 +301,11 @@ public static class GridifyExtensions
       if (string.IsNullOrWhiteSpace(gridifySelecting.Select))
          throw new GridifyQueryException("Select is not defined");
 
-      var parameterExp = Expression.Parameter(typeof(T));
-
       if (mapper is null)
+      {
+         var parameterExp = Expression.Parameter(typeof(T), "m");
          mapper = new GridifyMapper<T>(parameterExp, true);
+      }
 
       var members = ParseSelectings(gridifySelecting.Select!).ToList();
 
@@ -286,43 +314,61 @@ public static class GridifyExtensions
 
       var Tmembers = typeof(T).GetProperties();
 
-      if (mapper is null)
+      foreach (var member in members.Where(m => mapper.HasMap(m)))
       {
-         foreach (var member in members)
+         PropertyInfo? tm = null;
+         var meTo = mapper.GetGMap(member)!.To;
+         switch (meTo.Body)
          {
-            Expression<Func<T, dynamic>>? mexp = null;
-            try
+            case MemberExpression me:
             {
-               mexp = GridifyMapper<T>.CreateExpression(member);
-            }
-            catch (Exception)
-            {
-               // skip if there is no mappings available
+               tm = mapper.Configuration.CaseSensitive ? Tmembers.FirstOrDefault(m => m.Name.Equals(me!.Member.Name)) : Tmembers.FirstOrDefault(m => m.Name.Equals(me!.Member.Name, StringComparison.InvariantCultureIgnoreCase));
+
+               if (mapper.Configuration.UseMapperForPropertyName)
+               {
+                  ldps.Add(new DynamicProperty(member, me!.Type));
+               }
+               else
+               {
+                  ldps.Add(new DynamicProperty(tm!.Name, me!.Type));
+               }
+
+               var mexp = Expression.MakeMemberAccess(mapper.TypeParameter, tm!);
+               exp.Add(mexp);
+               break;
             }
 
-            if (mexp != null)
+            case UnaryExpression uec when uec.NodeType == ExpressionType.Convert:
             {
-               ldps.Add(new DynamicProperty(member, mexp.Type));
-               //exp.Add(expm);
+               var meo = uec.Operand as MemberExpression;
+               tm = mapper.Configuration.CaseSensitive ? Tmembers.FirstOrDefault(m => m.Name.Equals(meo!.Member.Name)) : Tmembers.FirstOrDefault(m => m.Name.Equals(meo!.Member.Name, StringComparison.InvariantCultureIgnoreCase));
+
+               if (mapper.Configuration.UseMapperForPropertyName)
+               {
+                  ldps.Add(new DynamicProperty(member, meo!.Type));
+               }
+               else
+               {
+                  ldps.Add(new DynamicProperty(tm!.Name, meo!.Type));
+               }
+               exp.Add(meo);
+               break;
             }
 
-         }
-      }
-      else
-      {
-         foreach (var member in members.Where(m => mapper.HasMap(m)))
-         {
-            var tm = mapper.Configuration.CaseSensitive ? Tmembers.FirstOrDefault(m => m.Name.Equals(member)) : Tmembers.FirstOrDefault(m => m.Name.Equals(member, StringComparison.InvariantCultureIgnoreCase));
+            case not UnaryExpression when (meTo.Body.NodeType == ExpressionType.Add || meTo.Body.NodeType == ExpressionType.Decrement || meTo.Body.NodeType == ExpressionType.Multiply || meTo.Body.NodeType == ExpressionType.Divide || meTo.Body.NodeType == ExpressionType.Power || meTo.Body.NodeType == ExpressionType.Convert || meTo.Body.NodeType == ExpressionType.Call || meTo.Body.NodeType == ExpressionType.Constant):
+            {
+               var meo = meTo.Body;
 
-            var mexp = Expression.MakeMemberAccess(parameterExp, tm!);
-            ldps.Add(new DynamicProperty(mexp!.Member.Name, mexp!.Type));
-            exp.Add(mexp);
+               ldps.Add(new DynamicProperty(member, meo!.Type));
+               exp.Add(meo);
+               break;
+            }
          }
       }
 
       var newexp = CreateNewExpression(ldps, exp, null);
 
-      var lambda = Expression.Lambda(newexp, parameterExp);
+      var lambda = Expression.Lambda(newexp, mapper.TypeParameter!);
       return lambda;
    }
 
@@ -439,7 +485,10 @@ public static class GridifyExtensions
          return (IQueryable<object>)query;
 
       if (mapper is null)
-         mapper = new GridifyMapper<T>(autoGenerateMappings: true);
+      {
+         var parameterExp = Expression.Parameter(typeof(T), "m");
+         mapper = new GridifyMapper<T>(parameterExp, autoGenerateMappings: true);
+      }
 
       var lambda = gridifySelecting.GetSelectingExpression(mapper);
 
@@ -546,7 +595,8 @@ public static class GridifyExtensions
       // build the mapper if it is null
       if (mapper is null)
       {
-         mapper = new GridifyMapper<T>();
+         var parameterExp = Expression.Parameter(typeof(T), "m");
+         mapper = new GridifyMapper<T>(parameterExp);
          foreach (var (member, _) in orders)
          {
             try
@@ -645,15 +695,7 @@ public static class GridifyExtensions
          {
             Type propertyType = propertyTypes[i];
 
-            // Promote from Type to Nullable Type if needed
-            if (expressions.ElementAt(i).NodeType != System.Linq.Expressions.ExpressionType.MemberAccess)
-            {
-               expressionsPromoted.Add(Expression.MakeMemberAccess(expressions.ElementAt(i), propertyType.GetTypeInfo())!);
-            }
-            else
-            {
-               expressionsPromoted.Add(expressions.ElementAt(i));
-            }
+            expressionsPromoted.Add(expressions.ElementAt(i));
          }
          var ntc = Expression.New(ctor, expressionsPromoted, propertyInfos);
          return ntc;
@@ -678,15 +720,7 @@ public static class GridifyExtensions
             propertyOrFieldType = fieldInfo.FieldType;
          }
 
-         // Promote from Type to Nullable Type if needed
-         if (expressions.ElementAt(i).NodeType != System.Linq.Expressions.ExpressionType.MemberAccess)
-         {
-            bindings[i] = Expression.Bind(memberInfo, Expression.MakeMemberAccess(expressions.ElementAt(i), propertyOrFieldType.GetTypeInfo())!);
-         }
-         else
-         {
-            bindings[i] = Expression.Bind(memberInfo, expressions.ElementAt(i));
-         }
+         bindings[i] = Expression.Bind(memberInfo, expressions.ElementAt(i));
       }
 
       return Expression.MemberInit(Expression.New(type), bindings); ;

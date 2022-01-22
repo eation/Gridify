@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Gridify;
 using Xunit;
 
@@ -16,7 +16,7 @@ public class GridifyEntityFrameworkTests : IClassFixture<DatabaseFixture>
    [Fact]
    public void EntityFrameworkServiceProviderCachingShouldNotThrowException()
    {
-      // System.ArgumentException: An item with the same key has already been added. Key: Param_0
+      // System.ArgumentException: An item with the same key has already been added. Key: m
 
       // arrange
       var gq = new GridifyQuery { Filter = "name=n1|name=n2" };

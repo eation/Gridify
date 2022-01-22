@@ -420,7 +420,7 @@ public class GridifyExtensionsShould
       var actual = _fakeRepository.AsQueryable()
          .ApplyFiltering("(name=*J|name=*S),(Id<5)")
          .ToList();
-      var expected = _fakeRepository.Where(q => (q.Name!.Contains("J") || q.Name.Contains("S")) && q.Id < 5).ToList();
+      var expected = _fakeRepository.Where(q => (q.Name!.Contains('J') || q.Name.Contains('S')) && q.Id < 5).ToList();
       Assert.Equal(expected.Count, actual.Count);
       Assert.Equal(expected, actual);
       Assert.True(actual.Any());
@@ -434,7 +434,7 @@ public class GridifyExtensionsShould
       var actual = _fakeRepository.AsQueryable()
          .ApplyFiltering(gq)
          .ToList();
-      var expected = _fakeRepository.Where(q => q.Name!.Contains("J") || q.Name.Contains("S") && q.Id < 5).ToList();
+      var expected = _fakeRepository.Where(q => q.Name!.Contains('J') || q.Name.Contains('S') && q.Id < 5).ToList();
       Assert.Equal(expected.Count, actual.Count);
       Assert.Equal(expected, actual);
       Assert.True(actual.Any());
@@ -795,13 +795,30 @@ public class GridifyExtensionsShould
       gq.Select = "id,name";
       var actual = _fakeRepository.AsQueryable()
          .ApplySelect(gq).Cast<dynamic>().ToList();
-      var expected = _fakeRepository.Select<TestClass, dynamic>(m => new { m.Id, m.Name }).ToList();
+      var expected = _fakeRepository.Select<TestClass, dynamic>(m => new { id = m.Id, name = m.Name }).ToList();
 
       var actualjson = System.Text.Json.JsonSerializer.Serialize(actual);
       var expectedjson = System.Text.Json.JsonSerializer.Serialize(expected);
       Assert.Equal(expectedjson, actualjson);
    }
+   [Fact]
+   public void ApplySelecting_ProptyName_Camelcase()
+   {
+      GridifyQuery? gq = new();
+      
+      gq.Select = "Id,Name";
+      var actual = _fakeRepository.AsQueryable()
+         .ApplySelect(gq).Cast<dynamic>().ToList();
+      var expected = _fakeRepository.Select<TestClass, dynamic>(m => new { m.Id,  m.Name }).ToList();
 
+      var actualjson = System.Text.Json.JsonSerializer.Serialize(actual);
+      var actualjson_Camelcase = System.Text.Json.JsonSerializer.Serialize(actual,new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive=true, PropertyNamingPolicy= System.Text.Json.JsonNamingPolicy.CamelCase });
+
+      var expectedjson = System.Text.Json.JsonSerializer.Serialize(expected);
+
+      Assert.Equal(expectedjson, actualjson);
+      Assert.NotEqual(expectedjson, actualjson_Camelcase);
+   }
    [Fact]
    public void ApplySelecting_EmptySelect_ShouldSkip()
    {
@@ -828,7 +845,7 @@ public class GridifyExtensionsShould
       var exp = gq.GetFilteringExpression(gm);
 
       var actual = exp.ToString();
-      var expected = "Param_0 => ((Param_0.Name == \"John\") OrElse (Param_0.Name == \"Sara\"))";
+      var expected = "m => ((m.Name == \"John\") OrElse (m.Name == \"Sara\"))";
       Assert.Equal(expected, actual);
    }
 
@@ -855,7 +872,33 @@ public class GridifyExtensionsShould
       var exp = gq.GetSelectingExpression(gm);
 
       var actual = exp.ToString();
-      var expected = "Param_0 => new {Id = Param_0.Id, Name = Param_0.Name}";
+      var expected = "m => new {id = m.Id, name = m.Name}";
+      Assert.Equal(expected, actual);
+   }
+
+   [Fact]
+   public void Expression_Selecting_Custom_ToExpression()
+   {
+      GridifyQuery? gq = new();
+      gq.Select = "id,pname";
+      var gm = new GridifyMapper<TestClass>().GenerateMappings().AddMap("pname", t => t.Name);
+      var exp = gq.GetSelectingExpression(gm);
+
+      var actual = exp.ToString();
+      var expected = "m => new {id = m.Id, pname = m.Name}";
+      Assert.Equal(expected, actual);
+   }
+
+   [Fact]
+   public void Expression_Selecting_Custom_ToExpression_2()
+   {
+      GridifyQuery? gq = new();
+      gq.Select = "id,pname";
+      var gm = new GridifyMapper<TestClass>().GenerateMappings().AddMap("pname", t=>t.Name+"_1233");
+      var exp = gq.GetSelectingExpression(gm);
+
+      var actual = exp.ToString();
+      var expected = "m => new {id = m.Id, pname = (t.Name + \"_1233\")}";
       Assert.Equal(expected, actual);
    }
    #endregion

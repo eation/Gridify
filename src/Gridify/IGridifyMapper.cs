@@ -22,4 +22,5 @@ public interface IGridifyMapper<T>
    bool HasMap(string key, StringComparison? comparison = null);
    public GridifyMapperConfiguration Configuration { get; }
    IEnumerable<IGMap<T>> GetCurrentMaps();
+   public ParameterExpression? TypeParameter { get;set; }
 }

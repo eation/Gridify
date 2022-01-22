@@ -65,5 +65,11 @@ namespace Gridify
       {
          EntityFrameworkCompatibilityLayer = false;
       }
+
+      /// <summary>
+      /// This option enables the PropertyName used Mapper 'From' in Selecting operations
+      /// Default is true
+      /// </summary>
+      public static bool UseMapperForPropertyName { get; set; } = true;
    }
 }

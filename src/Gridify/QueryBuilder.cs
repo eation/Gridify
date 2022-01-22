@@ -298,7 +298,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
             collection = collection.AsQueryable().ApplyOrdering(_orderBy);
 
          var result = collection.ToList();
-         var count = result.Count();
+         var count = result.Count;
 
          return _paging.HasValue
             ? new Paging<T>(count, result.Skip(_paging.Value.page * _paging.Value.pageSize).Take(_paging.Value.pageSize))

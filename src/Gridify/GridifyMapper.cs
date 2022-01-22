@@ -10,13 +10,16 @@ public class GridifyMapper<T> : IGridifyMapper<T>
 {
    public GridifyMapperConfiguration Configuration { get; }
    private readonly List<IGMap<T>> _mappings;
-   private static ParameterExpression? TypeParameter;
+   /// <summary>
+   /// Default Type ParameterExpression,It's named 'm'
+   /// </summary>
+   public ParameterExpression? TypeParameter { get; set; }
 
    public GridifyMapper(ParameterExpression? parameter = null, bool autoGenerateMappings = false)
    {
       Configuration = new GridifyMapperConfiguration();
       _mappings = new List<IGMap<T>>();
-      TypeParameter = parameter ?? Expression.Parameter(typeof(T));
+      TypeParameter = parameter ?? Expression.Parameter(typeof(T), "m");
 
       if (autoGenerateMappings)
          GenerateMappings();
@@ -26,7 +29,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
    {
       Configuration = configuration;
       _mappings = new List<IGMap<T>>();
-      TypeParameter = parameter ?? Expression.Parameter(typeof(T));
+      TypeParameter = parameter ?? Expression.Parameter(typeof(T), "m");
 
       if (autoGenerateMappings)
          GenerateMappings();
@@ -37,7 +40,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       Configuration = new GridifyMapperConfiguration();
       configuration.Invoke(Configuration);
       _mappings = new List<IGMap<T>>();
-      TypeParameter = Expression.Parameter(typeof(T));
+      TypeParameter = Expression.Parameter(typeof(T), "m");
 
       if (autoGenerateMappings)
          GenerateMappings();
@@ -52,7 +55,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       LambdaExpression to;
       try
       {
-         to = CreateExpression(from);
+         to = GridifyMapperHelper.CreateExpression<T>(TypeParameter!, from);
       }
       catch (Exception)
       {
@@ -82,18 +85,18 @@ public class GridifyMapper<T> : IGridifyMapper<T>
                   //if (lambda.Body.NodeType== ExpressionType.Convert||lambda.Body.NodeType== ExpressionType.ConvertChecked )
                   if (lambda.Body is UnaryExpression unary)
                   {
-                     var subExpression0 = CreateSubExpression(unary.Operand, item.Name)!;
+                     var subExpression0 = GridifyMapperHelper.CreateSubExpression<T>(TypeParameter!, unary.Operand, item.Name)!;
                      mappings.Add(new GMap<T>(name, subExpression0!));
                   }
                   else if (lambda.Body is MemberExpression member)
                   {
-                     var subExpression1 = CreateSubExpression(member, item.Name)!;
+                     var subExpression1 = GridifyMapperHelper.CreateSubExpression<T>(TypeParameter!, member, item.Name)!;
                      mappings.Add(new GMap<T>(name, subExpression1!));
                   }
                }
                else
                {
-                  var subExpression2 = CreateSubExpression(refExpression, item.Name)!;
+                  var subExpression2 = GridifyMapperHelper.CreateSubExpression<T>(TypeParameter!, refExpression, item.Name)!;
                   mappings.Add(new GMap<T>(name, subExpression2!));
                }
             }
@@ -120,7 +123,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
          foreach (var item in properties)
          {
             var name = char.ToLowerInvariant(item.Name[0]) + item.Name.Substring(1); // camel-case name
-            var expression = CreateExpression(item.Name)!;
+            var expression = GridifyMapperHelper.CreateExpression<T>(TypeParameter!, item.Name)!;
             // skip List
 
             if (item.PropertyType == typeof(string) || (item.PropertyType.IsValueType && !item.PropertyType.GetInterfaces().Any(m => m.Name == typeof(IEnumerable<>).Name)))
@@ -264,104 +267,4 @@ public class GridifyMapper<T> : IGridifyMapper<T>
    /// <returns>a comma seperated string</returns>
    public override string ToString() => string.Join(",", _mappings.Select(q => q.From));
 
-   internal static Expression<Func<T, dynamic>> CreateExpression(string from)
-   {
-      // x =>
-      //var parameter = Expression.Parameter(typeof(T));
-      // x.Name,x.yyy.zz.xx
-      Expression mapProperty = TypeParameter!;
-      foreach (var propertyName in from.Split('.'))
-      {
-         mapProperty = Expression.Property(mapProperty, propertyName);
-      }
-      // (object)x.Name
-      var convertedExpression = Expression.Convert(mapProperty, typeof(object));
-      // x => (object)x.Name
-      return Expression.Lambda<Func<T, object>>(convertedExpression, TypeParameter!);
-   }
-
-   internal static Expression<Func<T, dynamic>> CreateSubExpression(Expression root, string from)
-   {
-      if (root is LambdaExpression lambda)
-      {
-         // x =>
-         //var parameter = Expression.Parameter(typeof(T));
-         // x.Name,x.yyy.zz.xx
-         Expression mapProperty = lambda.Body;
-         foreach (var propertyName in from.Split('.'))
-         {
-            mapProperty = Expression.Property(mapProperty, propertyName);
-         }
-         // (object)x.Name
-         var convertedExpression = Expression.Convert(mapProperty, typeof(object));
-         // x => (object)x.Name
-         return Expression.Lambda<Func<T, object>>(convertedExpression, lambda.Parameters);
-      }
-      else
-      {
-         // x =>
-         //var parameter = Expression.Parameter(typeof(T));
-         // x.Name,x.yyy.zz.xx
-         Expression mapProperty = root;
-         foreach (var propertyName in from.Split('.'))
-         {
-            mapProperty = Expression.Property(mapProperty, propertyName);
-         }
-         // (object)x.Name
-         var convertedExpression = Expression.Convert(mapProperty, typeof(object));
-         // x => (object)x.Name
-         return Expression.Lambda<Func<T, object>>(convertedExpression, TypeParameter!);
-      }
-   }
-
-   internal static LambdaExpression CreateLambdaExpression(string from)
-   {
-      // x =>
-      //var parameter = Expression.Parameter(typeof(T));
-      // x.Name,x.yyy.zz.xx
-      Expression mapProperty = TypeParameter!;
-      foreach (var propertyName in from.Split('.'))
-      {
-         mapProperty = Expression.Property(mapProperty, propertyName);
-      }
-      // (object)x.Name
-      var convertedExpression = Expression.Convert(mapProperty, typeof(object));
-      // x => (object)x.Name
-      return Expression.Lambda(convertedExpression, TypeParameter!);
-   }
-
-   internal static LambdaExpression CreateSubLambdaExpression(Expression root, string from)
-   {
-      if (root is LambdaExpression lambda)
-      {
-         // x =>
-         //var parameter = lambda.Parameters;
-         // x.Name,x.yyy.zz.xx
-         Expression mapProperty = lambda.Body;
-         foreach (var propertyName in from.Split('.'))
-         {
-            mapProperty = Expression.Property(mapProperty, propertyName);
-         }
-         // (object)x.Name
-         //var convertedExpression = Expression.Convert(mapProperty, typeof(object));
-         // x => (object)x.Name
-         //return Expression.Lambda(convertedExpression, parameter);
-         return Expression.Lambda(mapProperty, lambda.Parameters);
-      }
-      else
-      {
-         //var parameter = Expression.Parameter(typeof(T));
-         // x.Name,x.yyy.zz.xx
-         Expression mapProperty = root;
-         foreach (var propertyName in from.Split('.'))
-         {
-            mapProperty = Expression.Property(mapProperty, propertyName);
-         }
-         // (object)x.Name
-         //var convertedExpression = Expression.Convert(mapProperty, typeof(object));
-         // x => (object)x.Name
-         //return Expression.Lambda(convertedExpression, parameter);
-         return Expression.Lambda(mapProperty, TypeParameter!);
-      }
-   }
 }
