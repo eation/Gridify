@@ -59,7 +59,7 @@ public interface IQueryBuilder<T>
    IQueryBuilder<T> ConfigureDefaultMapper(GridifyMapperConfiguration mapperConfiguration);
    IQueryBuilder<T> ConfigureDefaultMapper(Action<GridifyMapperConfiguration> mapperConfiguration);
    IQueryBuilder<T> AddMap(IGMap<T> map, bool overwrite = true);
-   IQueryBuilder<T> AddMap(string from, Expression<Func<T, dynamic?>> to, Func<string, object>? convertor = null, bool overwrite = true);
+   IQueryBuilder<T> AddMap(string from, Expression<Func<T, dynamic?>> destinationExpression, Func<string, object>? convertor = null, bool overwrite = true);
    IQueryBuilder<T> RemoveMap(IGMap<T> map);
 
    /// <summary>

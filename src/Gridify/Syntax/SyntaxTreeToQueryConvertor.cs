@@ -26,7 +26,7 @@ internal static class ExpressionToQueryConvertor
       if (gMap == null) throw new GridifyMapperException($"Mapping '{left}' not found");
 
       if (fieldExpression!.IsCollection)
-         gMap.To = UpdateExpressionIndex(gMap.To, fieldExpression.Index);
+         gMap.DestinationExpression = UpdateExpressionIndex(gMap.DestinationExpression, fieldExpression.Index);
 
       var isNested = ((GMap<T>)gMap).IsNestedCollection();
       if (isNested)
@@ -37,7 +37,7 @@ internal static class ExpressionToQueryConvertor
       }
       else
       {
-         if (GenerateExpression(gMap.To.Body, gMap.To.Parameters[0], right,
+         if (GenerateExpression(gMap.DestinationExpression.Body, gMap.DestinationExpression.Parameters[0], right,
                 op, mapper.Configuration.AllowNullSearch, gMap.Convertor) is not Expression<Func<T, bool>> result) return null;
          return (result, false);
       }
@@ -55,7 +55,7 @@ internal static class ExpressionToQueryConvertor
       ValueExpressionSyntax value,
       SyntaxNode op)
    {
-      var body = gMap.To.Body;
+      var body = gMap.DestinationExpression.Body;
 
       if (body is MethodCallExpression selectExp && selectExp.Method.Name == "Select")
       {

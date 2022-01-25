@@ -241,7 +241,7 @@ public static class GridifyExtensions
       foreach (var member in members.Where(m => mapper.HasMap(m)))
       {
          PropertyInfo? tm = null;
-         var meTo = mapper.GetGMap(member)!.To;
+         var meTo = mapper.GetGMap(member)!.DestinationExpression;
          switch (meTo.Body)
          {
             case MemberExpression me:
@@ -257,8 +257,17 @@ public static class GridifyExtensions
                   ldps.Add(new DynamicProperty(tm!.Name, me!.Type));
                }
 
-               var mexp = Expression.MakeMemberAccess(mapper.TypeParameter, tm!);
-               exp.Add(mexp);
+               MemberExpression mexp;
+               if (tm != null)
+               {
+                  mexp = Expression.MakeMemberAccess(mapper.TypeParameter, tm!);
+                  exp.Add(mexp);
+               }
+               else
+               {
+                  mexp = me;
+                  exp.Add(mexp);
+               }
                break;
             }
 
@@ -317,7 +326,7 @@ public static class GridifyExtensions
       foreach (var member in members.Where(m => mapper.HasMap(m)))
       {
          PropertyInfo? tm = null;
-         var meTo = mapper.GetGMap(member)!.To;
+         var meTo = mapper.GetGMap(member)!.DestinationExpression;
          switch (meTo.Body)
          {
             case MemberExpression me:
@@ -330,11 +339,20 @@ public static class GridifyExtensions
                }
                else
                {
-                  ldps.Add(new DynamicProperty(tm!.Name, me!.Type));
+                  ldps.Add(new DynamicProperty(tm!.Name ?? member, me!.Type));
                }
 
-               var mexp = Expression.MakeMemberAccess(mapper.TypeParameter, tm!);
-               exp.Add(mexp);
+               MemberExpression mexp;
+               if (tm != null)
+               {
+                  mexp = Expression.MakeMemberAccess(mapper.TypeParameter, tm!);
+                  exp.Add(mexp);
+               }
+               else
+               {
+                  mexp = me;
+                  exp.Add(mexp);
+               }
                break;
             }
 

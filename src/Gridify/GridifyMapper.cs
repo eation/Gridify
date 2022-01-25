@@ -51,11 +51,11 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       if (!overrideIfExists && HasMap(from))
          throw new GridifyMapperException($"Duplicate Key. the '{from}' key already exists");
 
-      //Expression<Func<T, dynamic>> to;
-      LambdaExpression to;
+      //Expression<Func<T, dynamic>> destinationExpression;
+      LambdaExpression destinationExpression;
       try
       {
-         to = GridifyMapperHelper.CreateExpression<T>(TypeParameter!, from);
+         destinationExpression = GridifyMapperHelper.CreateExpression<T>(TypeParameter!, from);
       }
       catch (Exception)
       {
@@ -63,7 +63,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       }
 
       RemoveMap(from);
-      _mappings.Add(new GMap<T>(from, to!, convertor));
+      _mappings.Add(new GMap<T>(from, destinationExpression!, convertor));
       return this;
    }
 
@@ -143,25 +143,25 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       }
    }
 
-   public IGridifyMapper<T> AddMap(string from, Expression<Func<T, dynamic?>> to, Func<string, object>? convertor = null!,
+   public IGridifyMapper<T> AddMap(string from, Expression<Func<T, dynamic?>> destinationExpression, Func<string, object>? convertor = null!,
       bool overrideIfExists = true)
    {
       if (!overrideIfExists && HasMap(from))
          throw new GridifyMapperException($"Duplicate Key. the '{from}' key already exists");
 
       RemoveMap(from);
-      _mappings.Add(new GMap<T>(from, to, convertor));
+      _mappings.Add(new GMap<T>(from, destinationExpression, convertor));
       return this;
    }
 
-   public IGridifyMapper<T> AddMap(string from, Expression<Func<T, int, dynamic?>> to, Func<string, object>? convertor = null!,
+   public IGridifyMapper<T> AddMap(string from, Expression<Func<T, int, dynamic?>> destinationExpression, Func<string, object>? convertor = null!,
       bool overrideIfExists = true)
    {
       if (!overrideIfExists && HasMap(from))
          throw new GridifyMapperException($"Duplicate Key. the '{from}' key already exists");
 
       RemoveMap(from);
-      _mappings.Add(new GMap<T>(from, to, convertor));
+      _mappings.Add(new GMap<T>(from, destinationExpression, convertor));
       return this;
    }
 
@@ -222,13 +222,13 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       LambdaExpression? expression = null;
       if (comparison != null)
       {
-         expression = _mappings.FirstOrDefault(q => key.Equals(q.From, comparison.Value))?.To;
+         expression = _mappings.FirstOrDefault(q => key.Equals(q.From, comparison.Value))?.DestinationExpression;
       }
       else
       {
          expression = Configuration.CaseSensitive
-                  ? _mappings.FirstOrDefault(q => key.Equals(q.From))?.To
-                  : _mappings.FirstOrDefault(q => key.Equals(q.From, StringComparison.InvariantCultureIgnoreCase))?.To;
+                  ? _mappings.FirstOrDefault(q => key.Equals(q.From))?.DestinationExpression
+                  : _mappings.FirstOrDefault(q => key.Equals(q.From, StringComparison.InvariantCultureIgnoreCase))?.DestinationExpression;
       }
 
       if (expression == null)
@@ -241,13 +241,13 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       LambdaExpression? expression = null;
       if (comparison != null)
       {
-         expression = _mappings.FirstOrDefault(q => key.Equals(q.From, comparison.Value))?.To;
+         expression = _mappings.FirstOrDefault(q => key.Equals(q.From, comparison.Value))?.DestinationExpression;
       }
       else
       {
          expression = Configuration.CaseSensitive
-                 ? _mappings.FirstOrDefault(q => key.Equals(q.From))?.To
-                 : _mappings.FirstOrDefault(q => key.Equals(q.From, StringComparison.InvariantCultureIgnoreCase))?.To;
+                 ? _mappings.FirstOrDefault(q => key.Equals(q.From))?.DestinationExpression
+                 : _mappings.FirstOrDefault(q => key.Equals(q.From, StringComparison.InvariantCultureIgnoreCase))?.DestinationExpression;
       }
 
       if (expression == null)

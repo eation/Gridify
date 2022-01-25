@@ -7,22 +7,22 @@ namespace Gridify;
 public class GMap<T> : IGMap<T>
 {
    public string From { get; set; }
-   public LambdaExpression To { get; set; }
+   public LambdaExpression DestinationExpression { get; set; }
    public Func<string, object>? Convertor { get; set; }
 
-   public GMap(string from, LambdaExpression to, Func<string, object>? convertor = null)
+   public GMap(string from, LambdaExpression destinationExpression, Func<string, object>? convertor = null)
    {
       From = from;
-      To = to;
+      DestinationExpression = destinationExpression;
       Convertor = convertor;
    }
 
-   internal bool IsNestedCollection() => Regex.IsMatch(To.ToString(), @"\.Select\s*\(");
+   internal bool IsNestedCollection() => Regex.IsMatch(DestinationExpression.ToString(), @"\.Select\s*\(");
 
-   //public GMap(string from, Expression<Func<T, int, dynamic?>> to, Func<string, object>? convertor = null)
+   //public GMap(string from, Expression<Func<T, int, dynamic?>> destinationExpression, Func<string, object>? convertor = null)
    //{
    //   From = from;
-   //   To = to;
+   //   DestinationExpression = destinationExpression;
    //   Convertor = convertor;
    //}
 }
