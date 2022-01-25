@@ -6,6 +6,6 @@ public class GridifyOrderingException : Exception
 {
    public GridifyOrderingException(string message) : base(message)
    {
-        
+
    }
 }

@@ -16,7 +16,7 @@ public class Paging<T>
       data = Data;
    }
 
-   public Paging(int count,IEnumerable<T> data)
+   public Paging(int count, IEnumerable<T> data)
    {
       Count = count;
       Data = data;
