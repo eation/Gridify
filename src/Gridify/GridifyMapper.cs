@@ -9,7 +9,7 @@ namespace Gridify;
 public class GridifyMapper<T> : IGridifyMapper<T>
 {
    public GridifyMapperConfiguration Configuration { get; }
-   private readonly List<IGMap<T>> _mappings;
+   private readonly List<IGMap> _mappings;
    /// <summary>
    /// Default Type ParameterExpression,It's named 'm'
    /// </summary>
@@ -18,7 +18,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
    public GridifyMapper(ParameterExpression? parameter = null, bool autoGenerateMappings = false)
    {
       Configuration = new GridifyMapperConfiguration();
-      _mappings = new List<IGMap<T>>();
+      _mappings = new List<IGMap>();
       TypeParameter = parameter ?? Expression.Parameter(typeof(T), "m");
 
       if (autoGenerateMappings)
@@ -28,7 +28,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
    public GridifyMapper(GridifyMapperConfiguration configuration, ParameterExpression? parameter = null, bool autoGenerateMappings = false)
    {
       Configuration = configuration;
-      _mappings = new List<IGMap<T>>();
+      _mappings = new List<IGMap>();
       TypeParameter = parameter ?? Expression.Parameter(typeof(T), "m");
 
       if (autoGenerateMappings)
@@ -39,39 +39,18 @@ public class GridifyMapper<T> : IGridifyMapper<T>
    {
       Configuration = new GridifyMapperConfiguration();
       configuration.Invoke(Configuration);
-      _mappings = new List<IGMap<T>>();
+      _mappings = new List<IGMap>();
       TypeParameter = Expression.Parameter(typeof(T), "m");
 
       if (autoGenerateMappings)
          GenerateMappings();
    }
 
-   public IGridifyMapper<T> AddMap(string from, Func<string, object>? convertor = null!, bool overrideIfExists = true)
-   {
-      if (!overrideIfExists && HasMap(from))
-         throw new GridifyMapperException($"Duplicate Key. the '{from}' key already exists");
-
-      //Expression<Func<T, dynamic>> destinationExpression;
-      LambdaExpression destinationExpression;
-      try
-      {
-         destinationExpression = GridifyMapperHelper.CreateExpression<T>(TypeParameter!, from);
-      }
-      catch (Exception)
-      {
-         throw new GridifyMapperException($"Property '{from}' not found.");
-      }
-
-      RemoveMap(from);
-      _mappings.Add(new GMap<T>(from, destinationExpression!, convertor));
-      return this;
-   }
-
-   private IList<GMap<T>> GenerateRefMappings(Expression refExpression, string refPropertyName, Type type, Type refType)
+   private IList<GMap> GenerateRefMappings(Expression refExpression, string refPropertyName, Type type, Type refType)
    {
       try
       {
-         var mappings = new List<GMap<T>>();
+         var mappings = new List<GMap>();
          var properties = type.GetProperties();
          foreach (var item in properties)
          {
@@ -86,18 +65,18 @@ public class GridifyMapper<T> : IGridifyMapper<T>
                   if (lambda.Body is UnaryExpression unary)
                   {
                      var subExpression0 = GridifyMapperHelper.CreateSubExpression<T>(TypeParameter!, unary.Operand, item.Name)!;
-                     mappings.Add(new GMap<T>(name, subExpression0!));
+                     mappings.Add(new GMap(refType, name, subExpression0!));
                   }
                   else if (lambda.Body is MemberExpression member)
                   {
                      var subExpression1 = GridifyMapperHelper.CreateSubExpression<T>(TypeParameter!, member, item.Name)!;
-                     mappings.Add(new GMap<T>(name, subExpression1!));
+                     mappings.Add(new GMap(refType, name, subExpression1!));
                   }
                }
                else
                {
                   var subExpression2 = GridifyMapperHelper.CreateSubExpression<T>(TypeParameter!, refExpression, item.Name)!;
-                  mappings.Add(new GMap<T>(name, subExpression2!));
+                  mappings.Add(new GMap(refType, name, subExpression2!));
                }
             }
             else if (item.PropertyType != refType && (item.PropertyType.IsClass && item.PropertyType != typeof(string) && !item.PropertyType.IsValueType && !item.PropertyType.GetInterfaces().Any(m => m.Name == typeof(IEnumerable<>).Name)))
@@ -128,7 +107,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
 
             if (item.PropertyType == typeof(string) || (item.PropertyType.IsValueType && !item.PropertyType.GetInterfaces().Any(m => m.Name == typeof(IEnumerable<>).Name)))
             {
-               _mappings.Add(new GMap<T>(name, expression!));
+               _mappings.Add(new GMap(typeof(T), name, expression!));
             }
             else if (item.PropertyType.IsClass && item.PropertyType != typeof(string) && !item.PropertyType.IsValueType && !item.PropertyType.GetInterfaces().Any(m => m.Name == typeof(IEnumerable<>).Name))
             {
@@ -143,6 +122,27 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       }
    }
 
+   public IGridifyMapper<T> AddMap(string from, Func<string, object>? convertor = null!, bool overrideIfExists = true)
+   {
+      if (!overrideIfExists && HasMap(from))
+         throw new GridifyMapperException($"Duplicate Key. the '{from}' key already exists");
+
+      //Expression<Func<T, dynamic>> destinationExpression;
+      LambdaExpression destinationExpression;
+      try
+      {
+         destinationExpression = GridifyMapperHelper.CreateExpression<T>(TypeParameter!, from);
+      }
+      catch (Exception)
+      {
+         throw new GridifyMapperException($"Property '{from}' not found.");
+      }
+
+      RemoveMap(from);
+      _mappings.Add(new GMap(typeof(T), from, destinationExpression!, convertor));
+      return this;
+   }
+
    public IGridifyMapper<T> AddMap(string from, Expression<Func<T, dynamic?>> destinationExpression, Func<string, object>? convertor = null!,
       bool overrideIfExists = true)
    {
@@ -150,7 +150,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
          throw new GridifyMapperException($"Duplicate Key. the '{from}' key already exists");
 
       RemoveMap(from);
-      _mappings.Add(new GMap<T>(from, destinationExpression, convertor));
+      _mappings.Add(new GMap(typeof(T), from, destinationExpression, convertor));
       return this;
    }
 
@@ -161,11 +161,11 @@ public class GridifyMapper<T> : IGridifyMapper<T>
          throw new GridifyMapperException($"Duplicate Key. the '{from}' key already exists");
 
       RemoveMap(from);
-      _mappings.Add(new GMap<T>(from, destinationExpression, convertor));
+      _mappings.Add(new GMap(typeof(T), from, destinationExpression, convertor));
       return this;
    }
 
-   public IGridifyMapper<T> AddMap(IGMap<T> gMap, bool overrideIfExists = true)
+   public IGridifyMapper<T> AddMap(IGMap gMap, bool overrideIfExists = true)
    {
       if (!overrideIfExists && HasMap(gMap.From))
          throw new GridifyMapperException($"Duplicate Key. the '{gMap.From}' key already exists");
@@ -183,7 +183,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       return this;
    }
 
-   public IGridifyMapper<T> RemoveMap(IGMap<T> gMap)
+   public IGridifyMapper<T> RemoveMap(IGMap gMap)
    {
       _mappings.Remove(gMap);
       return this;
@@ -203,7 +203,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       }
    }
 
-   public IGMap<T>? GetGMap(string from, StringComparison? comparison = null)
+   public IGMap? GetGMap(string from, StringComparison? comparison = null)
    {
       if (comparison != null)
       {
@@ -255,7 +255,7 @@ public class GridifyMapper<T> : IGridifyMapper<T>
       return expression as Expression<Func<T, dynamic>> ?? throw new GridifyMapperException($"Expression fir the `{key}` not found.");
    }
 
-   public IEnumerable<IGMap<T>> GetCurrentMaps()
+   public IEnumerable<IGMap> GetCurrentMaps()
    {
       return _mappings;
    }

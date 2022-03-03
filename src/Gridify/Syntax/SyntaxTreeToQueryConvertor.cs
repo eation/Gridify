@@ -28,7 +28,7 @@ internal static class ExpressionToQueryConvertor
       if (fieldExpression!.IsCollection)
          gMap.DestinationExpression = UpdateExpressionIndex(gMap.DestinationExpression, fieldExpression.Index);
 
-      var isNested = ((GMap<T>)gMap).IsNestedCollection();
+      var isNested = ((GMap)gMap).IsNestedCollection();
       if (isNested)
       {
          var result = GenerateNestedExpression(mapper, gMap, right, op);
@@ -51,7 +51,7 @@ internal static class ExpressionToQueryConvertor
 
    private static Expression<Func<T, bool>>? GenerateNestedExpression<T>(
       IGridifyMapper<T> mapper,
-      IGMap<T> gMap,
+      IGMap gMap,
       ValueExpressionSyntax value,
       SyntaxNode op)
    {

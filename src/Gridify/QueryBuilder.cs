@@ -105,7 +105,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    }
 
    /// <inheritdoc />
-   public IQueryBuilder<T> AddMap(IGMap<T> map, bool overwrite = true)
+   public IQueryBuilder<T> AddMap(IGMap map, bool overwrite = true)
    {
       _mapper ??= new GridifyMapper<T>(autoGenerateMappings: true);
       _mapper.AddMap(map, overwrite);
@@ -121,7 +121,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
    }
 
    /// <inheritdoc />
-   public IQueryBuilder<T> RemoveMap(IGMap<T> map)
+   public IQueryBuilder<T> RemoveMap(IGMap map)
    {
       _mapper ??= new GridifyMapper<T>(autoGenerateMappings: true);
       _mapper.RemoveMap(map);

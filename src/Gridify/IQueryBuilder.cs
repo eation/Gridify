@@ -58,9 +58,9 @@ public interface IQueryBuilder<T>
    IQueryBuilder<T> ConfigurePaging(int page, int pageSize);
    IQueryBuilder<T> ConfigureDefaultMapper(GridifyMapperConfiguration mapperConfiguration);
    IQueryBuilder<T> ConfigureDefaultMapper(Action<GridifyMapperConfiguration> mapperConfiguration);
-   IQueryBuilder<T> AddMap(IGMap<T> map, bool overwrite = true);
+   IQueryBuilder<T> AddMap(IGMap map, bool overwrite = true);
    IQueryBuilder<T> AddMap(string from, Expression<Func<T, dynamic?>> destinationExpression, Func<string, object>? convertor = null, bool overwrite = true);
-   IQueryBuilder<T> RemoveMap(IGMap<T> map);
+   IQueryBuilder<T> RemoveMap(IGMap map);
 
    /// <summary>
    /// Validate conditions, orderings, mappings
