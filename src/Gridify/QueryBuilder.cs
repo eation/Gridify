@@ -151,6 +151,7 @@ public class QueryBuilder<T> : IQueryBuilder<T>
       {
          return false;
       }
+
       return isValid;
    }
 

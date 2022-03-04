@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using Gridify;
+using Gridify.Syntax;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -17,7 +19,7 @@ public class GridifyEntityFrameworkTests
       _dbContext = new MyDbContext();
    }
 
-   // issue #24,  
+   // issue #24,
    // https://github.com/alirezanet/Gridify/issues/24
    [Fact]
    public void ApplyFiltering_GeneratedSqlShouldNotCreateParameterizedQuery_WhenCompatibilityLayerIsDisable_SqlServerProvider()
@@ -29,16 +31,16 @@ public class GridifyEntityFrameworkTests
       Assert.StartsWith("SELECT [u].[Id]", actual);
    }
 
-   // issue #24,  
+   // issue #24,
    // https://github.com/alirezanet/Gridify/issues/24
    [Fact]
    public void ApplyFiltering_GeneratedSqlShouldCreateParameterizedQuery_SqlServerProvider()
    {
       GridifyGlobalConfiguration.EnableEntityFrameworkCompatibilityLayer();
-         
+
       var name = "vahid";
       var expected = _dbContext.Users.Where(q => q.Name == name).ToQueryString();
-         
+
       var actual = _dbContext.Users.ApplyFiltering("name = vahid").ToQueryString();
 
       Assert.StartsWith("DECLARE @__Value", actual);
@@ -54,7 +56,7 @@ public class GridifyEntityFrameworkTests
       GridifyGlobalConfiguration.EnableEntityFrameworkCompatibilityLayer();
       var sb = new StringBuilder();
       sb.AppendLine("DECLARE @__Value_0 nvarchar(4000) = N'h';");
-      sb.AppendLine("SELECT [u].[Id], [u].[CreateDate], [u].[FkGuid], [u].[Name]");
+      sb.AppendLine("SELECT [u].[Id], [u].[CreateDate], [u].[FkGuid], [u].[Name], [u].[shadow1]");
       sb.AppendLine("FROM [Users] AS [u]");
       sb.AppendLine("WHERE [u].[Name] > @__Value_0");
 
@@ -73,5 +75,73 @@ public class GridifyEntityFrameworkTests
    {
       GridifyGlobalConfiguration.DisableEntityFrameworkCompatibilityLayer();
       Assert.Throws<InvalidOperationException>(() => _dbContext.Users.ApplyFiltering("name > h").ToQueryString());
+   }
+
+
+   // Support EF.Functions.FreeText #42
+   // https://github.com/alirezanet/Gridify/issues/42
+   [Fact]
+   public void ApplyFiltering_EFFunction_FreeTextOperator()
+   {
+      GridifyGlobalConfiguration.CustomOperators.Register(new FreeTextOperator());
+
+      // Arrange
+      var expected = _dbContext.Users.Where(q => EF.Functions.FreeText(q.Name, "test")).ToQueryString();
+
+      // Act
+      var actual = _dbContext.Users.ApplyFiltering("name #=* test").ToQueryString();
+
+      // Assert
+      Assert.Equal(expected, actual);
+   }
+
+   internal class FreeTextOperator : IGridifyOperator
+   {
+      public string GetOperator() => "#=*";
+
+      public Expression<OperatorParameter> OperatorHandler()
+      {
+         return (prop, value) => EF.Functions.FreeText(prop, value.ToString());
+      }
+   }
+
+   [Fact]
+   public void ApplyFiltering_ShadowProperty()
+   {
+      var gm = new GridifyMapper<User>()
+         .AddMap("x", (User q) => EF.Property<string>(q, "shadow1"));
+
+      var expected = _dbContext.Users.Where(q => EF.Property<string>(q, "shadow1") == "test").ToQueryString();
+      var actual = _dbContext.Users.ApplyFiltering("x = test", gm).ToQueryString();
+
+      Assert.Equal(expected, actual);
+   }
+
+   [Fact] // issue #69
+   public void ApplyOrdering_IsNotNull()
+   {
+      // Arrange
+      var expected = _dbContext.Users.OrderByDescending(q => q.CreateDate.HasValue).ThenBy(w => w.CreateDate).ToQueryString();
+      var gq = new GridifyQuery() { OrderBy = "CreateDate? desc, CreateDate" };
+
+      // Act
+      var actual = _dbContext.Users.ApplyOrdering(gq).ToQueryString();
+
+      // Assert
+      Assert.Equal(expected, actual);
+   }
+
+   [Fact] // issue #69
+   public void ApplyOrdering_IsNull()
+   {
+      // Arrange
+      var expected = _dbContext.Users.OrderBy(q => !q.CreateDate.HasValue).ToQueryString();
+      var gq = new GridifyQuery() { OrderBy = "CreateDate!" };
+
+      // Act
+      var actual = _dbContext.Users.ApplyOrdering(gq).ToQueryString();
+
+      // Assert
+      Assert.Equal(expected, actual);
    }
 }

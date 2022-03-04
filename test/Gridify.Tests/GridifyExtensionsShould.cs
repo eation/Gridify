@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-
+using Gridify.Syntax;
 using Xunit;
 
 namespace Gridify.Tests;
@@ -58,6 +58,7 @@ public class GridifyExtensionsShould
 
 
    #region "ApplyFiltering"
+
 
    [Fact]
    public void ApplyFiltering_ChildField()
@@ -662,6 +663,42 @@ public class GridifyExtensionsShould
 
    #endregion
 
+
+   #region CustomOperator
+
+   internal class UpperCaseEqual : IGridifyOperator
+   {
+      public string GetOperator()
+      {
+         return "#=";
+      }
+
+      public Expression<OperatorParameter> OperatorHandler()
+      {
+         return (prop, value) => prop.Equals(value.ToString()!.ToUpper());
+      }
+   }
+
+   [Fact]
+   public void ApplyFiltering_CustomOperator()
+   {
+      GridifyGlobalConfiguration.CustomOperators.Register(new UpperCaseEqual());
+      // Arrange
+      var expected = _fakeRepository
+         .Where(q => q.Name == "liam".ToUpper())
+         .ToList();
+
+      // Act
+      var actual = _fakeRepository.AsQueryable().ApplyFiltering("name#=liam").ToList();
+
+      // Assert
+      Assert.Equal(expected.Count, actual.Count);
+      Assert.Equal(expected, actual);
+      Assert.True(actual.Any());
+   }
+
+   #endregion
+
    #region "ApplyOrdering"
 
    [Fact]
@@ -779,6 +816,28 @@ public class GridifyExtensionsShould
       // name orderBy should be ignored
       var actual = _fakeRepository.AsQueryable().ApplyOrdering("name,id", gm).ToList();
       var expected = _fakeRepository.OrderBy(q => q.Id).ToList();
+
+      Assert.Equal(expected.Count, actual.Count);
+      Assert.Equal(expected, actual);
+      Assert.True(actual.Any());
+   }
+
+   [Fact] // issue #69
+   public void ApplyOrdering_NullableTypes_IsNotNull()
+   {
+      var actual = _fakeRepository.AsQueryable().ApplyOrdering("MyDateTime?").ToList();
+      var expected = _fakeRepository.OrderBy(q => q.MyDateTime.HasValue).ToList();
+
+      Assert.Equal(expected.Count, actual.Count);
+      Assert.Equal(expected, actual);
+      Assert.True(actual.Any());
+   }
+
+   [Fact] // issue #69
+   public void ApplyOrdering_NullableTypes_IsNull()
+   {
+      var actual = _fakeRepository.AsQueryable().ApplyOrdering("MyDateTime!").ToList();
+      var expected = _fakeRepository.OrderBy(q => !q.MyDateTime.HasValue).ToList();
 
       Assert.Equal(expected.Count, actual.Count);
       Assert.Equal(expected, actual);
